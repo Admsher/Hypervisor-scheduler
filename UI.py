@@ -2,7 +2,19 @@ import tkinter as tk
 from tkinter import messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import numpy as np
+import random
+import logic
+from threading import Thread, Lock, Event
+import time
+import pandas as pd
+import matplotlib.patches as mpatches
 
+functions_info={}
+function_map={}
+stop_event = Event()
+
+scheduler_started = False
 def update_fields():
     try:
         num_partitions = int(entry_num_partitions.get())
@@ -68,17 +80,89 @@ def create_schedule():
             raise ValueError("Mismatch in number of partitions.")
         
         # Create a new window for the plot
-        fig, ax = plt.subplots()
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        temp_val=0
+        for i in range(num_partitions):
+            func_name = f'func{i + 1}'  # Create function names like 'func1', 'func2', etc.
+            functions_info[func_name] = {
+                'last_run': 0,  # Assuming last_run is initialized to 0
+                'interval': periodicities[i],  # Periodicity from UI
+                'duration': durations[i]       # Duration from UI
+            }
+        for i in range(num_partitions):
+            func_name = f'func{i + 1}'  # Create function names like 'func1', 'func2', etc.
+            function_map[func_name] = lambda f=func_name: logic.execute_function(f)  
         
-        # Plot Duration with Time on X-Axis
-        ax.bar(range(num_partitions), durations, color='b', label='Duration')
+        logic.functions_info=functions_info
+        logic.function_map= function_map
         
-        # Optionally, you can plot Periodicity on a secondary Y-axis if needed
-        ax.set_xlabel('Time (Partitions)')
-        ax.set_ylabel('Duration')
-        ax.set_title('Schedule Bar Graph')
-        ax.legend()
+        # Start the scheduler
+        global scheduler_started
+        scheduler_thread = Thread(target=logic.scheduler, daemon=True)
+        worker_thread = Thread(target=logic.worker, daemon=True)
+        if not scheduler_started:
+            scheduler_thread.start()
+            worker_thread.start()
+        # Start the scheduler and worker threads only once
+            
+            scheduler_started = True
+
+      
+    # Run the main loop for 2 minutes
+        start_time = time.time()
+        duration = 10  # 2 minutes
         
+
+        while True:
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= duration:
+                break
+        time.sleep(1)
+        
+
+    # Save logs to Excel
+        df = pd.DataFrame(logic.log_entries)
+        df.to_excel('function_logs.xlsx', index=False)
+        
+
+        print("Log data has been written to function_logs.xlsx")
+      
+        
+        
+        duration_final=[]
+        durations=[]
+        for i in df["Duration"]:
+            duration_final.append(temp_val)
+            durations.append(i)
+            temp_val=temp_val+i
+
+            
+            # print(duration_final[i])
+        # Create the 3D Bar graph
+        xpos = np.array(duration_final)            # X-axis representing durations                   # X-axis representing durations
+        ypos = np.ones(len(duration_final))      # Y-axis values set to 1
+        zpos = np.zeros(len(duration_final))     # Z starting positions
+        unique_functions = df["Function"].unique()
+        function_color_map = {function: (random.random(), random.random(), random.random()) for function in unique_functions}
+        colors = [function_color_map[function] for function in df["Function"]]
+        # colors = [(random.random(), random.random(), random.random()) for _ in range(len(duration_final))]
+        dx = np.array(durations)         # Bar width
+        dy = np.ones(len(duration_final))        # Bar depth
+        dz = np.ones(len(duration_final))        # Bar heights fixed at 1 for simplicity
+
+        # Plot the 3D bars
+        ax.bar3d(xpos, ypos, zpos, dx, dy, dz, zsort='average',color=colors)
+
+        ax.set_xlabel('Time (X-axis)')
+        ax.set_ylabel('Y (Fixed at 1)')
+        ax.set_zlabel('Z (Fixed at 1)')
+        ax.set_title('3D Schedule Bar Graph')
+        legend_patches = [mpatches.Patch(color=function_color_map[function], label=function) for function in unique_functions]
+
+        # Add the legend to the plot
+        ax.legend(handles=legend_patches, loc='upper right', title="Functions")
+
         # Embed the plot in a Tkinter window
         plot_window = tk.Toplevel(root)
         plot_window.title("Schedule Graph")
