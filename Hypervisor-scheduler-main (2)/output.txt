@@ -1,0 +1,8 @@
+<Window Identifier="1" Start="0" Duration="2" TimePartitionID="1" Flags="VM_SCF_PERIOD"></Window>
+<Window Identifier="2" Start="2" Duration="3" TimePartitionID="2" Flags="VM_SCF_PERIOD"></Window>
+<Window Identifier="3" Start="5" Duration="2" TimePartitionID="1" Flags="VM_SCF_PERIOD"></Window>
+<Window Identifier="4" Start="7" Duration="3" TimePartitionID="2" Flags="VM_SCF_PERIOD"></Window>
+<Window Identifier="5" Start="10" Duration="2" TimePartitionID="1" Flags="VM_SCF_PERIOD"></Window>
+<Window Identifier="6" Start="12" Duration="3" TimePartitionID="2" Flags="VM_SCF_PERIOD"></Window>
+<Window Identifier="7" Start="15" Duration="2" TimePartitionID="1" Flags="VM_SCF_PERIOD"></Window>
+<Window Identifier="8" Start="17" Duration="3" TimePartitionID="2" Flags="VM_SCF_PERIOD"></Window>
