@@ -10,6 +10,7 @@ import time
 import pandas as pd
 import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d import Axes3D
+import math
 ##Do the frame in milliseconds
 ##Divide the periodicty by a factor
 ##Revise the time_gone
@@ -19,6 +20,53 @@ stop_event = Event()
 scheduler_started = False
 # Initialize zoom scale
 zoom_scale = 1.0
+global checkflag
+checkflag=False
+
+def create_priority_dialog(partitions):
+    # Create a new Tkinter window
+    window = tk.Tk()
+    window.title("Set Partition Priorities")
+
+    # Create a label and a listbox to display the partitions
+    label = tk.Label(window, text="Set priorities for the following partitions:")
+    label.pack()
+    listbox = tk.Listbox(window)
+    for partition in partitions:
+        listbox.insert(tk.END, partition)
+    listbox.pack()
+
+    # Create a frame to hold the priority entry fields
+    frame = tk.Frame(window)
+    frame.pack()
+
+    # Create a priority entry field for each partition
+    priority_entries = []
+    for i, partition in enumerate(partitions):
+        label = tk.Label(frame, text=f"{partition}:")
+        label.grid(row=i, column=0)
+        entry = tk.Entry(frame)
+        entry.grid(row=i, column=1)
+        priority_entries.append(entry)
+
+    # Create a button to submit the priorities
+    def submit_priorities():
+        priorities = []
+        for entry in priority_entries:
+            priority = int(entry.get())
+            priorities.append(priority)
+        logic.priorities=priorities
+        window.destroy()
+        create_schedule()
+
+    button = tk.Button(window, text="Submit", command=lambda: submit_priorities())
+    button.pack()
+
+    # Start the Tkinter event loop
+    priorities = window.mainloop()
+    create_schedule()
+
+
 def update_fields():
     try:
         num_partitions = int(entry_num_partitions.get())
@@ -62,13 +110,29 @@ def update_fields():
 
     except ValueError:
         messagebox.showerror("Invalid Input", "Please enter a valid positive integer for the number of partitions.")
+        
+        
+def checkclash(peridicity_array,major_frame)->bool:
+    i =0
+    j= len(peridicity_array)-1
+    while i<j:
+        lcm=math.lcm(int(peridicity_array[i]),int(peridicity_array[j]))
+        if lcm<major_frame:
+            return True
+        i+=1
+        j-=1
+    return False
+        
+        
 
 def create_schedule():
-    global zoom_scale, bars
+    global zoom_scale, bars,priorities,checkflag
     try:
         num_partitions = int(entry_num_partitions.get())
         major_frame = float(entry_major_frame.get())
+       
         durations = [float(entry.get()) for entry in frame_duration.winfo_children() if isinstance(entry, tk.Entry)]
+      
         periodicities = [float(entry.get()) for entry in frame_periodicity.winfo_children() if isinstance(entry, tk.Entry)]
 
         if len(durations) != num_partitions or len(periodicities) != num_partitions:
@@ -80,6 +144,15 @@ def create_schedule():
             raise ValueError("All periodicities must be greater than zero.")
         
         lcm_periodicity = np.lcm.reduce(np.array(periodicities_int))
+        if checkclash(periodicities,lcm_periodicity) and not checkflag :
+            checkflag=True
+            messagebox.showwarning("Clash Detetcted", "Some partitions are clashing, give priority to each partition manually.")
+            partitions = []
+            print(num_partitions)
+            for i in range(num_partitions):
+                partitions.append(f"Parition {i+1}")
+                print(partitions)
+            create_priority_dialog(partitions)
 
         if major_frame <= lcm_periodicity:
             if lcm_periodicity==max(periodicities_int):
@@ -133,6 +206,8 @@ def create_schedule():
         df = pd.DataFrame(logic.log_entries)
         df.to_excel('function_logs.xlsx', index=False)
         print("Log data has been written to function_logs.xlsx")
+        min_durations = df.groupby('Function')['Duration'].min()
+        min_durations.to_csv('output.txt', sep='\t', header=True)
 
         # Create the 3D Bar graph
         unique_functions = df["Function"].unique()

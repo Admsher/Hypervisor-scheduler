@@ -13,6 +13,8 @@ global time_gone
 functions_info = {}
 global functions_in_call
 functions_in_call=[]
+global priorities
+priorities=[]
 
 # Define a generic function executor
 def execute_function(func_name):
@@ -28,13 +30,13 @@ def execute_function(func_name):
         if func == func_name:
             continue
 
-        # print(time_gone+duration,info['last_run']+info['interval'])
-        if time_gone+duration>info['next_time']:  
-            print("info time",info['next_time'])          
+        if info['next_time'] == time_gone+duration:
+            if priorities[func_name[:-1]]<priorities[func[:-1]]:
+                return 
+        if time_gone+duration>info['next_time']:         
             min_time = min(min_time, info['next_time'])
 
-            print(time_gone+duration-min_time)    
-    print("runtime is",min_time)  
+    print("runtime is",min_time-time_gone)  
     runtime = min_time - time_gone
     
    
@@ -128,16 +130,19 @@ def scheduler():
                     first_instance.append(func_name)
                     scheduled_functions.add(func_name)
                     scheduled_function = (sorted(scheduled_functions, key=lambda x: functions_info[x]['next_time']))
-
-                    # Trigger the event
                     execution_event.set()
+
+                  
             while not execution_queue.empty():
                 execution_queue.get()
             # print("queue, should be empty", execution_queue.qsize())
             for func_name in scheduled_function:
                 execution_queue.put(func_name)
             # print("should have something", execution_queue.qsize())
-
+            # Trigger the event
+                    
+           
+        # Wait for the execution event to be set
             # If no functions are ready, sleep for a short time and check again
             if time_gone < lcm:
                 print(time_gone)
@@ -161,7 +166,9 @@ def worker():
             run_function(func_name)
             # Remove the function from the set after execution
             with lock:
-                print("removing", func_name)
-                scheduled_functions.remove(func_name)
+                try:
+                    scheduled_functions.remove(func_name)
+                except KeyError:
+                    pass
         # Clear the event after all functions have been executed
         execution_event.clear()
