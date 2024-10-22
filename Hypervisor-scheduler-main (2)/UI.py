@@ -94,7 +94,10 @@ def update_fields():
         # Create new fields
         for i in range(num_partitions):
             tk.Label(frame_duration, text=f"Duration for Partition {i+1}:").grid(row=i, column=0, padx=10, pady=5)
-            tk.Entry(frame_duration).grid(row=i, column=1, padx=10, pady=5)
+            entry = tk.Entry(frame_duration, width=10, insertwidth=10)
+            entry.insert(0, "1")
+            entry.grid(row=i, column=1, padx=10, pady=5)
+            # tk.Entry(frame_duration,default="1").grid(row=i, column=1, padx=10, pady=5)
 
             tk.Label(frame_periodicity, text=f"Periodicity for Partition {i+1} (in ms):").grid(row=i, column=0, padx=10, pady=5)
             tk.Entry(frame_periodicity).grid(row=i, column=1, padx=10, pady=5)
