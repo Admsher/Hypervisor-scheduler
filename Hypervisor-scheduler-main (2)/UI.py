@@ -11,6 +11,7 @@ import pandas as pd
 import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d import Axes3D
 import math
+import itertools
 ##Do the frame in milliseconds
 ##Divide the periodicty by a factor
 ##Revise the time_gone
@@ -22,6 +23,29 @@ scheduler_started = False
 zoom_scale = 1.0
 global checkflag
 checkflag=False
+
+
+
+def find_offsets(A, N):
+    min_A = min(A)
+    offsets = []
+    offset_vars = [chr(120 + i) for i in range(len(A))]  # create offset variables dynamically
+    offset_ranges = [np.arange(-min_A, min_A, 1) for _ in offset_vars]  # use numpy arange for float ranges
+
+    for offset_values in itertools.product(*offset_ranges):
+        print(offset_values)
+        sequences = []
+        for a_i, offset in zip(A, offset_values):
+            sequence = [a_i * j + offset for j in range(1, N+1)]
+            sequences.append(sequence)
+        union = set()
+        for s in sequences:
+            union |= set(s)
+        if len(union) == sum(len(s) for s in sequences):
+            offsets.append(offset_values)
+    return offsets
+
+
 
 def create_priority_dialog(partitions):
     # Create a new Tkinter window
@@ -148,14 +172,19 @@ def create_schedule():
         
         lcm_periodicity = np.lcm.reduce(np.array(periodicities_int))
         if checkclash(periodicities,lcm_periodicity) and not checkflag :
-            checkflag=True
-            messagebox.showwarning("Clash Detetcted", "Some partitions are clashing, give priority to each partition manually.")
-            partitions = []
-            print(num_partitions)
-            for i in range(num_partitions):
-                partitions.append(f"Parition {i+1}")
-                print(partitions)
-            create_priority_dialog(partitions)
+            max_iter=int(lcm_periodicity/min(periodicities))
+            offset_array= find_offsets(periodicities,max_iter)
+            if offset_array is not None:
+                print("Offset feasible")
+            else:
+                checkflag=True
+                messagebox.showwarning("Clash Detetcted", "Some partitions are clashing, give priority to each partition manually.")
+                partitions = []
+                print(num_partitions)
+                for i in range(num_partitions):
+                    partitions.append(f"Parition {i+1}")
+                    print(partitions)
+                create_priority_dialog(partitions)
 
         if major_frame <= lcm_periodicity:
             if lcm_periodicity==max(periodicities_int):
@@ -177,7 +206,7 @@ def create_schedule():
                 'duration': durations[i],
                 'count': 0,
                 'debt_time':0,
-                'next_time':periodicities[i]
+                'next_time':periodicities[i]+offset_array[-1][i]
             }
         for i in range(num_partitions):
             func_name = f'func{i + 1}'

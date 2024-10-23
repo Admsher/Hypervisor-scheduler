@@ -6,6 +6,9 @@ import pandas as pd
 import math
 import schedule
 import numpy as np
+import itertools
+
+
 first_instance=[]
 global instance_true
 instance_true=True
@@ -16,6 +19,9 @@ global functions_in_call
 functions_in_call=[]
 global priorities
 priorities=[]
+
+
+
 
 # Define a generic function executor
 def execute_function(func_name):
@@ -31,8 +37,7 @@ def execute_function(func_name):
         if func == func_name:
             print("ignoring")
             continue
-        print(time_gone,func,info['next_time'])
-        print()
+        # print(time_gone,func,info['next_time'])
         if info['next_time'] == np.floor(time_gone):
                 if priorities[int(func_name[-1])-1]<priorities[int(func[-1])-1]:
                     print(f"Ignoring {func_name} due to lower priorirty")
@@ -101,6 +106,26 @@ global lcm
 lcm=0
 global identification
 identification=1
+
+def find_offset(A, N):
+    def is_relatively_prime(a, b):
+        return math.gcd(a, b) == 1
+
+    def backtrack(offset):
+        if offset > max(A):
+            return None
+        if is_relatively_prime(offset, lcm):
+            return offset
+        return backtrack(offset + 1)
+
+    lcm = 1
+    for num in A:
+        lcm = lcm * num // math.gcd(lcm, num)
+
+    return backtrack(1)
+
+
+
 def log_function_info(func_name, action, duration,periodicity):
     global time_gone, identification ,instance_true
     """Log the start and finish times of functions."""
