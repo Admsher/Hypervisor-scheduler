@@ -5,6 +5,7 @@ import time
 import pandas as pd
 import math
 import schedule
+import numpy as np
 first_instance=[]
 global instance_true
 instance_true=True
@@ -28,23 +29,27 @@ def execute_function(func_name):
     min_time=time_gone+duration
     for func,info in  functions_info.items():
         if func == func_name:
+            print("ignoring")
             continue
+        print(time_gone,func,info['next_time'])
+        print()
+        if info['next_time'] == np.floor(time_gone):
+                if priorities[int(func_name[-1])-1]<priorities[int(func[-1])-1]:
+                    print(f"Ignoring {func_name} due to lower priorirty")
+                    return 
+        if time_gone+duration>info['next_time']:    
+                print(f"{func_name} interfering with {func} reducing time")     
+                min_time = min(min_time, info['next_time'])
 
-        if info['next_time'] == time_gone+duration:
-            if priorities[func_name[:-1]]<priorities[func[:-1]]:
-                return 
-        if time_gone+duration>info['next_time']:         
-            min_time = min(min_time, info['next_time'])
-
-    print("runtime is",min_time-time_gone)  
+    print(f"runtime is for {func_name} is",min_time-time_gone)  
     runtime = min_time - time_gone
     
    
-    print(time_gone)    
+    # print(time_gone)    
     if functions_info[func_name]['debt_time'] > 0 and functions_info[func_name]['debt_time'] < runtime:
         
 
-        print("Running debt")
+        # print("Running debt")
         log_function_info(func_name, 'started.', functions_info[func_name]['debt_time'],periodicity)
         time.sleep(functions_info[func_name]['debt_time'])
         
@@ -57,16 +62,16 @@ def execute_function(func_name):
         min_run_time = 0.02  # 2 ms
 
         if runtime <= 0:
-            print("Insufficient time to run the function; running for minimum time.")
+            # print("Insufficient time to run the function; running for minimum time.")
             log_function_info(func_name, 'started.', min_run_time, periodicity)
             time.sleep(min_run_time)
-            time_gone += min_run_time
+            # time_gone += min_run_time
         else:
-            print("Function can run.")
+            # print("Function can run.")
             functions_info[func_name]['debt_time']=duration-runtime
             log_function_info(func_name, 'started.', runtime, periodicity)
             time.sleep(runtime)
-            time_gone += runtime
+            # time_gone += runtime
 
 # Map function names to the generic function call
 function_map = {
@@ -82,7 +87,7 @@ execution_event = Event()
 execution_event.set()  # Allow execution to start
 global scheduled_functions
 # Queue to manage the function execution order
-execution_queue = SimpleQueue()
+execution_queue = PriorityQueue()
 scheduled_functions = set()  # Set to keep track of scheduled functions
 
 # List to collect log entries
@@ -102,9 +107,9 @@ def log_function_info(func_name, action, duration,periodicity):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if action==("started."):
     
-            log_entries.append({'ID':identification ,'Time Lapsed':time_gone ,'Duration': duration,'Function': func_name[-1],'Periodicity':periodicity})
+            log_entries.append({'ID':identification ,'Time Lapsed':time_gone ,'Duration': duration,'Function': func_name[-1],'Periodicity':periodicity,'Next_time':functions_info[func_name]['next_time']})
             identification+=1
-    print(f"{timestamp} - {func_name} {action} Duration: {duration} seconds")
+    # print(f"{timestamp} - {func_name} {action} Duration: {duration} seconds")
 
 def run_function(func_name):
     """Run the specified function."""
@@ -113,62 +118,43 @@ def run_function(func_name):
         # Run the function based on the map
         function_map[func_name]() # Execute the function
 
-
-
 def scheduler():
-    global instance_true
+    global time_gone
     """Scheduler that adds functions to the execution queue based on their intervals."""
-    global time_gone, lcm
-    scheduled_function = []
+    
     while True:
         now = time_gone
         with lock:
             for func_name, info in functions_info.items():
                 if now >= info['next_time']:
-                    info['next_time'] = info['next_time'] + info['interval']
-                    print("next time", func_name, info['next_time'])
-                    first_instance.append(func_name)
-                    scheduled_functions.add(func_name)
-                    scheduled_function = (sorted(scheduled_functions, key=lambda x: functions_info[x]['next_time']))
+                    print(f"Scheduling: {func_name}")
+                    # Update the next execution time
+                    info['next_time'] += info['interval']
+                    # Add to priority queue
+                    execution_queue.put((info['next_time'], func_name))
                     execution_event.set()
-
-                  
-            while not execution_queue.empty():
-                execution_queue.get()
-            # print("queue, should be empty", execution_queue.qsize())
-            for func_name in scheduled_function:
-                execution_queue.put(func_name)
-            # print("should have something", execution_queue.qsize())
-            # Trigger the event
                     
-           
         # Wait for the execution event to be set
-            # If no functions are ready, sleep for a short time and check again
-            if time_gone < lcm:
-                print(time_gone)
-                time_gone = time_gone + 0.1
-                time.sleep(0.1)  # Check every second
-            else:
-                break
-        # Add a small delay before clearing the execution event
-        time.sleep(0.1)
-        execution_event.clear()
+        if time_gone < lcm:
+            time.sleep(0.01)  # Check every 10ms
+            time_gone += 0.01
+        else:
+            break
 
 def worker():
     """Worker that processes functions from the execution queue."""
+    
     while True:
         # Wait for the execution event to be set
         execution_event.wait()
-        while execution_event.is_set():
-            # Get a function from the queue
-            func_name = execution_queue.get()
+        
+        while not execution_queue.empty():
+            # Get the function from the queue
+            next_time, func_name = execution_queue.get()
+            print(f"Executing: {func_name} at time {time_gone} when next time was {functions_info[func_name]['next_time']-functions_info[func_name]['interval']}")
+            
             # Execute the function
             run_function(func_name)
-            # Remove the function from the set after execution
-            with lock:
-                try:
-                    scheduled_functions.remove(func_name)
-                except KeyError:
-                    pass
+
         # Clear the event after all functions have been executed
         execution_event.clear()
