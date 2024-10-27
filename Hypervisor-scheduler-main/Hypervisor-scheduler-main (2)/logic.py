@@ -64,9 +64,9 @@ def execute_function(func_name):
         
         
        
-        min_run_time = 0.02  # 2 ms
+        min_run_time = 0.3  # 2 ms
 
-        if runtime <= 0:
+        if runtime <= 0.1:
             # print("Insufficient time to run the function; running for minimum time.")
             log_function_info(func_name, 'started.', min_run_time, periodicity)
             time.sleep(min_run_time)

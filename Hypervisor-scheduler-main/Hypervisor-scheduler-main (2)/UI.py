@@ -12,9 +12,9 @@ import matplotlib.patches as mpatches
 from mpl_toolkits.mplot3d import Axes3D
 import math
 import itertools
-##Do the frame in milliseconds
-##Divide the periodicty by a factor
-##Revise the time_gone
+from tkinter import StringVar
+import log_exporter
+
 functions_info = {}
 function_map = {}
 stop_event = Event()
@@ -23,7 +23,8 @@ scheduler_started = False
 zoom_scale = 1.0
 global checkflag
 checkflag=False
-
+global offset_array
+offset_array=[]
 
 
 def find_offsets(A, N):
@@ -182,8 +183,8 @@ def create_schedule():
                 partitions = []
                 print(num_partitions)
                 for i in range(num_partitions):
-                    partitions.append(f"Parition {i+1}")
-                    print(partitions)
+                        partitions.append(f"Parition {i+1}")
+                        print(partitions)
                 create_priority_dialog(partitions)
 
         if major_frame <= lcm_periodicity:
@@ -198,20 +199,34 @@ def create_schedule():
 
         # Create a new window for the plot
         temp_val = 0
+        try:
+            for i in range(num_partitions):
+                func_name = f'func{i + 1}'
+                functions_info[func_name] = {
+                    'last_run': 0,
+                    'interval': periodicities[i],
+                    'duration': durations[i],
+                    'count': 0,
+                    'debt_time':0,
+                    'next_time':periodicities[i]+offset_array[-2][i]
+                }
+        except UnboundLocalError:
+            for i in range(num_partitions):
+                func_name = f'func{i + 1}'
+                functions_info[func_name] = {
+                    'last_run': 0,
+                    'interval': periodicities[i],
+                    'duration': durations[i],
+                    'count': 0,
+                    'debt_time':0,
+                    'next_time':periodicities[i]
+                }
+        
+        
         for i in range(num_partitions):
-            func_name = f'func{i + 1}'
-            functions_info[func_name] = {
-                'last_run': 0,
-                'interval': periodicities[i],
-                'duration': durations[i],
-                'count': 0,
-                'debt_time':0,
-                'next_time':periodicities[i]+offset_array[-1][i]
-            }
-        for i in range(num_partitions):
-            func_name = f'func{i + 1}'
-            function_map[func_name] = lambda f=func_name: logic.execute_function(f)
- 
+                func_name = f'func{i + 1}'
+                function_map[func_name] = lambda f=func_name: logic.execute_function(f)
+        
         logic.functions_info = dict(sorted(functions_info.items(), key=lambda item: item[1]['interval']))
         logic.function_map = function_map
         
@@ -319,6 +334,26 @@ tk.Label(frame_periodicity, text="Periodicity:").grid(row=0, column=0, padx=10, 
 # Create Schedule button
 button_create_schedule = tk.Button(frame_content, text="Create Schedule", command=create_schedule)
 button_create_schedule.grid(row=10, columnspan=2, padx=10, pady=10)
+
+label_format = tk.Label(frame_content, text="Select Format for Conversion:")
+label_format.grid(row=11, column=0, padx=10, pady=10)
+
+format_var = StringVar(value="Select Format")
+format_options = ["VxWorks", "PikeOS"]
+dropdown_format = tk.OptionMenu(frame_content, format_var, *format_options)
+dropdown_format.grid(row=11, column=1, padx=10, pady=10)
+
+# Convert to CSV
+button_convert_csv = tk.Button(frame_content, text="Output XML", command=lambda: log_exporter.convert_to_csv(format_var))
+button_convert_csv.grid(row=12, columnspan=2, padx=10, pady=5)
+
+# Convert to XML
+# button_convert_xml = tk.Button(frame_content, text="Convert to XML", command=log_exporter.convert_to_xml)
+# button_convert_xml.grid(row=13, columnspan=2, padx=10, pady=5)
+
+# # Convert to VxWorks XML
+# button_convert_vxworks_xml = tk.Button(frame_content, text="Convert to VxWorks XML", command=log_exporter.convert_to_vxworks_xml)
+# button_convert_vxworks_xml.grid(row=14, columnspan=2, padx=10, pady=5)
 
 # Update scrollregion when widgets are added/removed
 def on_frame_configure(event):
