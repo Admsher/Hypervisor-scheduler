@@ -19,7 +19,6 @@ functions_info = {}
 function_map = {}
 stop_event = Event()
 scheduler_started = False
-# Initialize zoom scale
 zoom_scale = 1.0
 global checkflag
 checkflag=False
@@ -30,11 +29,10 @@ offset_array=[]
 def find_offsets(A, N):
     min_A = min(A)
     offsets = []
-    offset_vars = [chr(120 + i) for i in range(len(A))]  # create offset variables dynamically
-    offset_ranges = [np.arange(-min_A, min_A, 1) for _ in offset_vars]  # use numpy arange for float ranges
+    offset_vars = [chr(120 + i) for i in range(len(A))]  
+    offset_ranges = [np.arange(-min_A, min_A, 1) for _ in offset_vars] 
 
     for offset_values in itertools.product(*offset_ranges):
-        print(offset_values)
         sequences = []
         for a_i, offset in zip(A, offset_values):
             sequence = [a_i * j + offset for j in range(1, N+1)]
@@ -49,23 +47,16 @@ def find_offsets(A, N):
 
 
 def create_priority_dialog(partitions):
-    # Create a new Tkinter window
     window = tk.Tk()
     window.title("Set Partition Priorities")
-
-    # Create a label and a listbox to display the partitions
     label = tk.Label(window, text="Set priorities for the following partitions:")
     label.pack()
     listbox = tk.Listbox(window)
     for partition in partitions:
         listbox.insert(tk.END, partition)
     listbox.pack()
-
-    # Create a frame to hold the priority entry fields
     frame = tk.Frame(window)
     frame.pack()
-
-    # Create a priority entry field for each partition
     priority_entries = []
     for i, partition in enumerate(partitions):
         label = tk.Label(frame, text=f"{partition}:")
@@ -74,7 +65,6 @@ def create_priority_dialog(partitions):
         entry.grid(row=i, column=1)
         priority_entries.append(entry)
 
-    # Create a button to submit the priorities
     def submit_priorities():
         priorities = []
         for entry in priority_entries:
@@ -87,7 +77,6 @@ def create_priority_dialog(partitions):
     button = tk.Button(window, text="Submit", command=lambda: submit_priorities())
     button.pack()
 
-    # Start the Tkinter event loop
     priorities = window.mainloop()
     create_schedule()
 
@@ -98,13 +87,13 @@ def update_fields():
         if num_partitions <= 0:
             raise ValueError("Number of partitions must be positive.")
 
-        # Clear existing fields
+
         for widget in frame_duration.winfo_children():
             widget.destroy()
         for widget in frame_periodicity.winfo_children():
             widget.destroy()
 
-        # Clear and redraw the boxes on canvas
+
         canvas_boxes.delete("all")
         canvas_width = 300
         canvas_height = 50
@@ -116,23 +105,20 @@ def update_fields():
             y1 = canvas_height - 10
             canvas_boxes.create_rectangle(x0, y0, x1, y1, outline="black", fill="lightblue")
 
-        # Create new fields
         for i in range(num_partitions):
             tk.Label(frame_duration, text=f"Duration for Partition {i+1}:").grid(row=i, column=0, padx=10, pady=5)
             entry = tk.Entry(frame_duration, width=10, insertwidth=10)
             entry.insert(0, "1")
             entry.grid(row=i, column=1, padx=10, pady=5)
-            # tk.Entry(frame_duration,default="1").grid(row=i, column=1, padx=10, pady=5)
+
 
             tk.Label(frame_periodicity, text=f"Periodicity for Partition {i+1} (in ms):").grid(row=i, column=0, padx=10, pady=5)
             tk.Entry(frame_periodicity).grid(row=i, column=1, padx=10, pady=5)
 
-        # Add Major Frame entry after updating fields
         if not major_frame_label.winfo_ismapped():
             major_frame_label.grid(row=num_partitions + 3, column=0, padx=10, pady=10)
             entry_major_frame.grid(row=num_partitions + 3, column=1, padx=10, pady=10)
 
-        # Adjust layout
         root.update_idletasks()
         canvas_main.configure(scrollregion=canvas_main.bbox("all"))
 
@@ -154,7 +140,7 @@ def checkclash(peridicity_array,major_frame)->bool:
         
 
 def create_schedule():
-    global zoom_scale, bars,priorities,checkflag
+    global zoom_scale, bars,priorities,checkflag,offset_array
     try:
         num_partitions = int(entry_num_partitions.get())
         major_frame = float(entry_major_frame.get())
@@ -166,7 +152,7 @@ def create_schedule():
         if len(durations) != num_partitions or len(periodicities) != num_partitions:
             raise ValueError("Mismatch in number of partitions.")
 
-        # Compute the LCM of periodicities, ensuring they are non-zero
+
         periodicities_int = [int(p) for p in periodicities if p > 0]
         if not periodicities_int:
             raise ValueError("All periodicities must be greater than zero.")
@@ -175,16 +161,14 @@ def create_schedule():
         if checkclash(periodicities,lcm_periodicity) and not checkflag :
             max_iter=int(lcm_periodicity/min(periodicities))
             offset_array= find_offsets(periodicities,max_iter)
-            if offset_array is not None:
+            if len(offset_array)!=0 :
                 print("Offset feasible")
             else:
                 checkflag=True
-                messagebox.showwarning("Clash Detetcted", "Some partitions are clashing, give priority to each partition manually.")
+                messagebox.showwarning("Clash Detetcted", "Some partitions are clashing, give priority to each partition manually. Or give new range of periodicities")
                 partitions = []
-                print(num_partitions)
                 for i in range(num_partitions):
                         partitions.append(f"Parition {i+1}")
-                        print(partitions)
                 create_priority_dialog(partitions)
 
         if major_frame <= lcm_periodicity:
@@ -193,10 +177,9 @@ def create_schedule():
             else:
                 major_frame=major_frame
 
-        # print(major_frame)
 
         logic.lcm = major_frame
-
+      
         # Create a new window for the plot
         temp_val = 0
         try:
@@ -208,9 +191,9 @@ def create_schedule():
                     'duration': durations[i],
                     'count': 0,
                     'debt_time':0,
-                    'next_time':periodicities[i]+offset_array[-2][i]
+                    'next_time':periodicities[i]+offset_array[-1][i]
                 }
-        except UnboundLocalError:
+        except (UnboundLocalError,IndexError):
             for i in range(num_partitions):
                 func_name = f'func{i + 1}'
                 functions_info[func_name] = {
@@ -252,7 +235,6 @@ def create_schedule():
         # Save logs to Excel
         df = pd.DataFrame(logic.log_entries)
         df.to_excel('function_logs.xlsx', index=False)
-        print("Log data has been written to function_logs.xlsx")
         min_durations = df.groupby('Function')['Duration'].min()
         min_durations.to_csv('output.txt', sep='\t', header=True)
 
@@ -347,13 +329,6 @@ dropdown_format.grid(row=11, column=1, padx=10, pady=10)
 button_convert_csv = tk.Button(frame_content, text="Output XML", command=lambda: log_exporter.convert_to_csv(format_var))
 button_convert_csv.grid(row=12, columnspan=2, padx=10, pady=5)
 
-# Convert to XML
-# button_convert_xml = tk.Button(frame_content, text="Convert to XML", command=log_exporter.convert_to_xml)
-# button_convert_xml.grid(row=13, columnspan=2, padx=10, pady=5)
-
-# # Convert to VxWorks XML
-# button_convert_vxworks_xml = tk.Button(frame_content, text="Convert to VxWorks XML", command=log_exporter.convert_to_vxworks_xml)
-# button_convert_vxworks_xml.grid(row=14, columnspan=2, padx=10, pady=5)
 
 # Update scrollregion when widgets are added/removed
 def on_frame_configure(event):

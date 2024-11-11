@@ -2,7 +2,7 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 from tkinter import messagebox
 import logic
-
+import numpy as np
 def convert_to_csv(format_var):
     selected_format = format_var.get()
     if selected_format == "VxWorks":
@@ -37,8 +37,8 @@ def convert_to_xml():
     for index, row in df.iterrows():
         window = ET.SubElement(window_table, "Window")
         window.set("Identifier", str(index + 1))  
-        window.set("Start", str(row['Time Lapsed'])) 
-        window.set("Duration", str(row['Duration']))  
+        window.set("Start", str(int(row['Time Lapsed']*1000000))) 
+        window.set("Duration", str(row['Duration']*1000000))  
         window.set("TimePartitionID", str(row['Function']))  
         window.set("Flags", "VM_SCF_PERIOD")  
 
@@ -62,19 +62,18 @@ def convert_to_vxworks_xml():
         messagebox.showwarning("No Data", "No log data available to convert.")
         return
 
-    # Create the root element
     schedule = ET.Element("Schedule", Name="init")
 
     for index, row in df.iterrows():
         window = ET.SubElement(schedule, "Window")
-        window.set("PartitionNameRef", str(row['Function']))  
-        window.set("Duration", str(row['Duration']))  
-        window.set("PeriodicProcessingStart", "true")  
+        window.set("PartitionNameRef", str(row['Function']))
+        window.set("Duration", str(np.ceil(row['Duration'] * 1000000)))
+        window.set("Offset", str(np.ceil(int(row['Time Lapsed'] * 1000000) / 10000) * 10000))  # Round the Offset value
+        window.set("PeriodicProcessingStart", "true")
 
-    # Create the tree and write to XML
     filename = 'function_logs_vxworks.xml'
     with open(filename, 'wb') as f:
-        f.write(b'<?xml version="1.0" encoding="utf-8"?>\n')  
+        f.write(b'<?xml version="1.0" encoding="utf-8"?>\n')
         f.write(ET.tostring(schedule, encoding='utf-8', xml_declaration=False))
 
     with open(filename, 'r+', encoding='utf-8') as f:
@@ -85,4 +84,3 @@ def convert_to_vxworks_xml():
         f.truncate()
 
     messagebox.showinfo("Success", f"Log data has been written to {filename}")
-

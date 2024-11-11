@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScheduleScheme Name="SCHED_BOOT">
+<WindowTable>
+<Window Identifier="1" Start="1099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="2" Start="2100000" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="3" Start="3000000" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="4" Start="4100000" Duration="1000000" TimePartitionID="2" Flags="VM_SCF_PERIOD" />
+<Window Identifier="5" Start="6099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="6" Start="7099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="7" Start="10199999" Duration="1000000" TimePartitionID="4" Flags="VM_SCF_PERIOD" />
+<Window Identifier="8" Start="11099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="9" Start="12099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="10" Start="12099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="11" Start="12099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="12" Start="12099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="13" Start="12099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+<Window Identifier="14" Start="12099999" Duration="1000000" TimePartitionID="1" Flags="VM_SCF_PERIOD" />
+</WindowTable>
+</ScheduleScheme>
