@@ -68,7 +68,7 @@ def convert_to_vxworks_xml():
         window = ET.SubElement(schedule, "Window")
         window.set("PartitionNameRef", str(row['Function']))
         window.set("Duration", str(np.ceil(row['Duration'] * 1000000)))
-        window.set("Offset", str(np.ceil(int(row['Time Lapsed'] * 1000000) / 10000) * 10000))  # Round the Offset value
+        window.set("Offset", str(np.floor(int(row['Time Lapsed'] * 1000000) / 100000) * 100000))  # Round the Offset value
         window.set("PeriodicProcessingStart", "true")
 
     filename = 'function_logs_vxworks.xml'

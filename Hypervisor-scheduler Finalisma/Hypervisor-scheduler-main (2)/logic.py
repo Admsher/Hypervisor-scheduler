@@ -39,28 +39,28 @@ def execute_function(func_name):
         if time_gone+duration>info['next_time']:    
                 min_time = min(min_time, info['next_time'])
     runtime = duration-(time_gone+duration-min_time)
-    
+    print(f"Runtime for {func_name} is {runtime} at time {time_gone}")
    
   
-    if functions_info[func_name]['debt_time'] > 0 and functions_info[func_name]['debt_time'] < runtime:
+    if functions_info[func_name]['debt_time'] > 0 and functions_info[func_name]['debt_time'] > runtime:
 
         log_function_info(func_name, 'started.', functions_info[func_name]['debt_time'],periodicity)
-        time.sleep(functions_info[func_name]['debt_time']/100)
+        time.sleep(functions_info[func_name]['debt_time']/10)
         
         time_gone+=functions_info[func_name]['debt_time']
         functions_info[func_name]['debt_time']=0
     else:
 
-        min_run_time = 1 
+        min_run_time = 0.3 
 
-        if runtime <= 1:
+        if runtime <= 0.1:
             log_function_info(func_name, 'started.', min_run_time, periodicity)
-            time.sleep(min_run_time/100)
+            time.sleep(min_run_time/10)
        
         else:
             functions_info[func_name]['debt_time']=duration-runtime
             log_function_info(func_name, 'started.', runtime, periodicity)
-            time.sleep(runtime/100)
+            time.sleep(runtime/10)
 
 function_map = {
     'func1': lambda: execute_function('func1'),
@@ -110,10 +110,19 @@ def scheduler():
                     info['next_time'] += info['interval']
                     execution_queue.put((info['next_time'], func_name))
                     execution_event.set()
+                    if func_name not in first_instance:
+                        first_instance.append(func_name)
+            if time_gone>lcm/2 and execution_queue.empty():
+                for func,info in functions_info.items():
+                    if func not in first_instance:
+                        first_instance.append(func)
+                        execution_queue.put((info['next_time'], func))
+                        execution_event.set()
+                        break
      
         if time_gone < lcm:
 
-            time.sleep(1/100)  
+            time.sleep(1/10)  
             time_gone += 0.1
         else:
             break
